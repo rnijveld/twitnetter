@@ -1,0 +1,5 @@
+*.dat
+target/
+project/target/
+output.*
+twitter4j.properties
