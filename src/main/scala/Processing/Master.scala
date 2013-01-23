@@ -4,6 +4,7 @@ import akka.actor._
 import akka.routing.RoundRobinRouter
 import scala.math.log
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 import org.apache.commons.lang3.StringEscapeUtils.unescapeJava
 import org.codersunit.tn.input.Input
 

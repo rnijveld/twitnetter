@@ -29,3 +29,4 @@ case object Result extends Message
 
 /** The map containing counted results */
 case class Counted(map: Map[String, Int], what: String) extends Message
+

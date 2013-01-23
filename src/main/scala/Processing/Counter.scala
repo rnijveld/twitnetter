@@ -3,6 +3,7 @@ package org.codersunit.tn.processing
 import akka.actor._
 import akka.routing.Broadcast
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 import akka.routing.ConsistentHashingRouter
 
 /** Counts how often received strings occur */
@@ -72,7 +73,6 @@ class Counter(what: String, nChildren: Int = 0) extends Actor {
   def receiveResult(map: Map[String, Int]) {
     received += 1
     counted ++= map
-    Console.println(s"Received ${received} results, expecting ${nChildren}")
     if (received == nChildren) {
       // all children have sent their results, we can now send our own result to the requester
       complete()
