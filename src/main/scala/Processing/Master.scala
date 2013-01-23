@@ -5,16 +5,16 @@ import akka.routing.RoundRobinRouter
 import scala.math.log
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
-import org.apache.commons.lang3.StringEscapeUtils.unescapeJava
 import org.codersunit.tn.input.Input
+import org.codersunit.tn.helper.tokenizer.Tokenizer
 
 /** Master that sends out all tasks for counting words */
 class Master(
     nrOfGenerators: Int,
     nrOfWordCounters: Int,
     nrOfAssocCounters: Int,
-    input: Input,
-    ignoredWords: Set[String])
+    ignoredWords: Set[String],
+    tokenizer: Tokenizer)
   extends Actor {
 
   /** Counter for words */
@@ -25,7 +25,7 @@ class Master(
 
   /** Generator that generates words and associations for the counters */
   val generators = context.actorOf(
-    Props(new Generator(wordCounter, assocCounter, self, ignoredWords)).withRouter(RoundRobinRouter(nrOfGenerators)),
+    Props(new Generator(wordCounter, assocCounter, self, ignoredWords, tokenizer)).withRouter(RoundRobinRouter(nrOfGenerators)),
     name="generators"
   )
 
@@ -42,19 +42,13 @@ class Master(
   var assocs: Option[Map[String, Int]] = None
 
   def receive = {
-    case Run => {
-      var curr = input
-      while (!curr.atEnd) {
-        generators ! Sentence(unescapeJava(curr.first))
-        sentLines += 1
-        curr = curr.rest
-      }
-      completed = true
+    case s: Sentence => {
+      sentLines += 1
+      generators ! s
     }
+    case Finished => completed = true
     case Completed(n: Int) => {
       completedLines += n
-
-      Console.println(s"Completed ${completedLines}, sent ${sentLines}")
 
       if (completed && completedLines == sentLines) {
         wordCounter ! Result
@@ -62,7 +56,6 @@ class Master(
       }
     }
     case Counted(map: Map[String, Int], what: String) => {
-      Console.println(s"Got results for ${what}")
       if (what == "words") {
         words = Some(map)
       } else {

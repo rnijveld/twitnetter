@@ -1,14 +1,28 @@
 package org.codersunit.tn.input
 
-import scala.util.parsing.input.Reader
+import org.codersunit.tn.processing.{Finished, Sentence}
+import akka.actor._
 
 /** Abstract input class */
-abstract class Input extends Reader[String] {
-    /** Current line number */
-    def line: Int
+abstract class Input {
+    var m: ActorRef = null
 
-    def rest: Input
+    /** Method to be called when no more input is to be expected */
+    def finish = {
+        m ! Finished
+    }
 
-    /** Takes the line number and current string and generates a Position from it */
-    def pos = Position(line, first)
+    /** Method to be called when a new input is received and should be processed */
+    def next(sentence: String) = {
+        m ! Sentence(sentence)
+    }
+
+    /** Method that will be called when the Input class should start generating input */
+    def run: Unit
+
+    /** Send input to the actor that is responsible for assigning work */
+    def >>(master: ActorRef) = {
+        m = master
+        run
+    }
 }

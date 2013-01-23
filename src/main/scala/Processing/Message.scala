@@ -10,9 +10,6 @@ sealed class Message extends Serializable
 /** Sentence to be processed */
 case class Sentence(str: String) extends Message
 
-/** Message indicating that the master should start processing */
-case object Run extends Message
-
 /** Message indicating that counting is complete */
 case object Done extends Message
 
@@ -30,3 +27,11 @@ case object Result extends Message
 /** The map containing counted results */
 case class Counted(map: Map[String, Int], what: String) extends Message
 
+/** Message indicating that all input was sent */
+case object Finished extends Message
+
+/** Request the hashmap of associations */
+case object Associations extends Message
+
+/** Request the hashmap of words */
+case object Words extends Message

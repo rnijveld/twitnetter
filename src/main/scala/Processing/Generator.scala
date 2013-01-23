@@ -2,14 +2,16 @@ package org.codersunit.tn.processing
 
 import akka.actor._
 import org.codersunit.tn.helper.WordCounter
-import org.codersunit.tn.helper.Tokenizer
+import org.codersunit.tn.helper.tokenizer.Tokenizer
+
 
 /** Generates words and skipgrams based on received sentences */
 class Generator(
     wordCounter: ActorRef,
     assocCounter: ActorRef,
     master: ActorRef,
-    ignored: Set[String])
+    ignored: Set[String],
+    tokenizer: Tokenizer)
   extends Actor {
 
   /** Number of received sentences */
@@ -30,7 +32,7 @@ class Generator(
   /** Generate the words and skipgrams for a sentence. */
   def generate(sentence: String) {
     received += 1
-    val tokens = Tokenizer.tokenize(sentence)
+    val tokens = tokenizer.tokenize(sentence)
 
     // send words, as long as they aren't being ignored
     for (word <- WordCounter.words(tokens)) {

@@ -17,4 +17,16 @@ If you're not using it in a cluster, a simple local instance can be started by r
 
     sbt run
 
+## Input types
+By default the word association counter supports counting from a file (either just plain text or text escaped
+with java escape sequences) and getting a fixed number of tweets from Twitter given some query. While results flow
+in from Twitter, they are directly handled by the system as to not create a backlog. Take a look at the classes that
+are used for generating the input in `src/main/scala/input`, especially the `Input` abstract class which should be
+extended if different types of input are required.
+
+## Tokenizers
+Provided is a tokenizer for tweets, that removes @handle references, urls and other special characters, furthermore
+it transforms all input to lowercase. If other Tokenizers are required, you'll want to extend the `Tokenizer` class
+in `src/main/scala/helper/tokenizer`.
+
 

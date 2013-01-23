@@ -1,10 +1,10 @@
-package org.codersunit.tn.helper
+package org.codersunit.tn.helper.tokenizer
 
 import java.net.URL
 import java.net.MalformedURLException
 import scala.util.matching.Regex
 
-object Tokenizer {
+object Twitter extends Tokenizer {
     def tokenize(str: String): List[String] = {
         str.split("""\s+""").toList.filterNot(
             (x: String) => isTwitterDetail(x) || isUrl(x)
