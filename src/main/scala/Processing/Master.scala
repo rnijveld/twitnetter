@@ -1,16 +1,18 @@
+package org.codersunit.tn.processing
+
 import akka.actor._
 import akka.routing.RoundRobinRouter
 import scala.math.log
 import scala.collection.mutable.HashMap
-import scala.io.Source
 import org.apache.commons.lang3.StringEscapeUtils.unescapeJava
+import org.codersunit.tn.input.Input
 
 /** Master that sends out all tasks for counting words */
 class Master(
     nrOfGenerators: Int,
     nrOfWordCounters: Int,
     nrOfAssocCounters: Int,
-    input: String,
+    input: Input,
     ignoredWords: Set[String])
   extends Actor {
 
@@ -40,14 +42,18 @@ class Master(
 
   def receive = {
     case Run => {
-      for (line <- Source.fromFile(input).getLines()) {
-        generators ! Sentence(unescapeJava(line))
+      var curr = input
+      while (!curr.atEnd) {
+        generators ! Sentence(unescapeJava(curr.first))
         sentLines += 1
+        curr = curr.rest
       }
       completed = true
     }
     case Completed(n: Int) => {
       completedLines += n
+
+      Console.println(s"Completed ${completedLines}, sent ${sentLines}")
 
       if (completed && completedLines == sentLines) {
         wordCounter ! Result
@@ -55,6 +61,7 @@ class Master(
       }
     }
     case Counted(map: Map[String, Int], what: String) => {
+      Console.println(s"Got results for ${what}")
       if (what == "words") {
         words = Some(map)
       } else {
@@ -101,7 +108,7 @@ class Master(
     }
 
     Console.println("Done")
-    Grapher.gw(wc, ac, "vvd")
+    // Grapher.gw(wc, ac, "vvd")
     context.system.shutdown()
   }
 }

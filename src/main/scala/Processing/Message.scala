@@ -1,3 +1,5 @@
+package org.codersunit.tn.processing
+
 import akka.actor._
 import scala.collection.mutable.Map
 import akka.routing.ConsistentHashingRouter.ConsistentHashable

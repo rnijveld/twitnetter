@@ -1,3 +1,5 @@
+package org.codersunit.tn.helper
+
 import scala.collection.immutable.HashSet
 
 object WordCounter {

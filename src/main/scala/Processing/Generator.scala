@@ -1,4 +1,8 @@
+package org.codersunit.tn.processing
+
 import akka.actor._
+import org.codersunit.tn.helper.WordCounter
+import org.codersunit.tn.helper.Tokenizer
 
 /** Generates words and skipgrams based on received sentences */
 class Generator(

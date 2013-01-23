@@ -1,3 +1,5 @@
+package org.codersunit.tn
+
 import twitter4j._
 import scala.io.Source
 import java.lang.System

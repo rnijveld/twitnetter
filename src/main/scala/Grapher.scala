@@ -1,3 +1,5 @@
+package org.codersunit.tn
+
 import scala.collection.mutable.Map
 import scala.collection.mutable.StringBuilder
 import java.io.FileWriter

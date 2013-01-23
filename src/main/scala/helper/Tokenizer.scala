@@ -1,3 +1,5 @@
+package org.codersunit.tn.helper
+
 import java.net.URL
 import java.net.MalformedURLException
 import scala.util.matching.Regex
