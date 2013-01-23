@@ -1,4 +1,5 @@
 debug=false
+loggerFactory=twitter4j.internal.logging.NullLoggerFactory
 oauth.consumerKey=
 oauth.consumerSecret=
 oauth.accessToken=

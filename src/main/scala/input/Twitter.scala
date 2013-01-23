@@ -2,9 +2,11 @@ package org.codersunit.tn.input
 
 import twitter4j._
 import scala.collection.mutable.ArrayBuilder
+import collection.JavaConversions._
 
 /** Input that provides strings by reading a file */
 class Twitter(nTweets: Int) extends Input {
+    var listeners: List[(String, Option[Any] => Unit)] = Nil
     val factory = new TwitterStreamFactory()
     val stream = factory.getInstance()
     stream.addListener(Listener)
@@ -16,7 +18,10 @@ class Twitter(nTweets: Int) extends Input {
         case Some(status: Status) => {
             next(status.getText())
             grabbedTweets += 1
+            Console.print(s"\rReceived ${grabbedTweets} tweets...")
             if (grabbedTweets == nTweets) {
+                Console.println("")
+                stream.shutdown()
                 finish
             }
         }
@@ -32,6 +37,12 @@ class Twitter(nTweets: Int) extends Input {
         } else {
             stream.sample()
         }
+    }
+
+    def filter(keyword: Any) = keyword match {
+        case k: String => query += k
+        case ks: Array[String] => query ++= ks.toSeq
+        case _ => throw new Exception("Unexpected argument type")
     }
 
     object Listener extends StatusListener {
@@ -61,8 +72,6 @@ class Twitter(nTweets: Int) extends Input {
             trigger("exception", Some(ex))
         }
     }
-
-    var listeners: List[(String, Option[Any] => Unit)] = Nil
 
     def listen(event: String, listener: Option[Any] => Unit) = listeners ::= (event, listener)
 
