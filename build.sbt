@@ -8,9 +8,9 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 scalacOptions += "-deprecation"
 
-libraryDependencies += "org.twitter4j" % "twitter4j-core" % "2.2.6"
+libraryDependencies += "org.twitter4j" % "twitter4j-core" % "3.0.3"
 
-libraryDependencies += "org.twitter4j" % "twitter4j-stream" % "2.2.6"
+libraryDependencies += "org.twitter4j" % "twitter4j-stream" % "3.0.3"
 
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.1"
 

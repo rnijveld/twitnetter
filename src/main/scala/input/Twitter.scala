@@ -12,17 +12,21 @@ class Twitter(nTweets: Int) extends Input {
     stream.addListener(Listener)
 
     val query = new ArrayBuilder.ofRef[String]()
+    var lang: List[String] = Nil
+    var geos: List[Array[Double]] = Nil
     var grabbedTweets = 0
 
     listen("tweet", (tweet: Option[Any]) => tweet match {
         case Some(status: Status) => {
-            next(status.getText())
-            grabbedTweets += 1
-            Console.print(s"\rReceived ${grabbedTweets} tweets...")
-            if (grabbedTweets == nTweets) {
-                Console.println("")
-                stream.shutdown()
-                finish
+            if (lang.length <= 0 || lang.contains(status.getUser.getLang)) {
+                next(status.getText())
+                grabbedTweets += 1
+                Console.print(s"\rReceived ${grabbedTweets} tweets...")
+                if (grabbedTweets == nTweets) {
+                    Console.println("")
+                    stream.shutdown()
+                    finish
+                }
             }
         }
         case _ => {}
@@ -30,14 +34,29 @@ class Twitter(nTweets: Int) extends Input {
 
     def run = {
         val queryResult: Array[String] = query.result()
-        if (queryResult.length > 0) {
+
+        if (queryResult.length > 0 || geos.length > 0) {
             val filter = new FilterQuery()
-            filter.track(queryResult)
+            if (queryResult.length > 0) {
+                filter.track(queryResult)
+            }
+
+            if (geos.length > 0) {
+                val g: Array[Array[Double]] = geos.toArray
+                filter.locations(g)
+            }
+
             stream.filter(filter)
         } else {
             stream.sample()
         }
     }
+
+    def filterGeo(southLat: Double, westLong: Double, northLat: Double, eastLong: Double) = {
+        geos = geos ++ List(Array(westLong, southLat), Array(eastLong, northLat))
+    }
+
+    def filterLang(l: String) = lang ::= l
 
     def filter(keyword: Any) = keyword match {
         case k: String => query += k
@@ -70,6 +89,10 @@ class Twitter(nTweets: Int) extends Input {
 
         def onException(ex: Exception) = {
             trigger("exception", Some(ex))
+        }
+
+        def onStallWarning(warning: StallWarning) = {
+            trigger("stalled", Some(warning))
         }
     }
 
