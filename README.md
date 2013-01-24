@@ -48,4 +48,8 @@ that have been observed less than 10 times.
 Currently only a `csv` output formatter is available. If other output formatters are required take a look at the implementation of `Csv`
 in `src/main/scala/output/formatter`.
 
+## Twitter
+In order for Twitter input to work, you'll need to duplicate `twitter4j.properties.default` to `twitter4j.properties` and fill in the
+details of a Twitter API account. Twitter API accounts can be retrieved/created at https://dev.twitter.com/apps
+
 

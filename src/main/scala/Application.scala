@@ -24,11 +24,11 @@ object Application extends App {
 	val ignoredWords = Set("rt")
 
   // specify the input reader
-  // val input = new File("data.in")
+  val input = new File("input.dat")
 	// val input = new JavaEscapedFile("tweets3.dat")
-  val input = new Twitter(10000)
+  //val input = new Twitter(10000)
   // input.filterLang("nl")
-  input.filterGeo(50.76, 3.34, 53.56, 7.20)
+  //input.filterGeo(50.76, 3.34, 53.56, 7.20)
 
   // what tokenizer to use on the input
   val tokenizerImpl = tokenizer.Twitter
