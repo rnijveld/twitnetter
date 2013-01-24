@@ -3,6 +3,10 @@ package org.codersunit.tn.input
 import twitter4j._
 import scala.collection.mutable.ArrayBuilder
 import collection.JavaConversions._
+import scalax.file.Path
+import scalax.io.StandardOpenOption.WriteAppend
+import scalax.io._
+import org.apache.commons.lang3.StringEscapeUtils.escapeJava
 
 /** Input that provides strings by reading a file */
 class Twitter(nTweets: Int) extends Input {
@@ -16,9 +20,17 @@ class Twitter(nTweets: Int) extends Input {
     var geos: List[Array[Double]] = Nil
     var grabbedTweets = 0
 
+    var backup: Option[Output] = None
+
     listen("tweet", (tweet: Option[Any]) => tweet match {
         case Some(status: Status) => {
             if (lang.length <= 0 || lang.contains(status.getUser.getLang)) {
+                backup match {
+                    case Some(x: Output) => {
+                        x.write(escapeJava(status.getText()) + "\n")
+                    }
+                    case _ => {}
+                }
                 next(status.getText())
                 grabbedTweets += 1
                 Console.print(s"\rReceived ${grabbedTweets} tweets...")
@@ -62,6 +74,10 @@ class Twitter(nTweets: Int) extends Input {
         case k: String => query += k
         case ks: Array[String] => query ++= ks.toSeq
         case _ => throw new Exception("Unexpected argument type")
+    }
+
+    def backupTo(file: String) = {
+        backup = Some(Path(file).outputStream(WriteAppend:_*))
     }
 
     object Listener extends StatusListener {

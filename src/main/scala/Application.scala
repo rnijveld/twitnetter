@@ -21,14 +21,15 @@ object Application extends App {
 	val nrOfAssocCounters = 25
 
   // these words will be ignored, as well as any association that contains one or more of these words
-	val ignoredWords = Set("rt")
+	val ignoredWords = Set("rt", "een", "de", "het", "ik", "je", "jij", "we", "wij", "en", "is", "heb", "i", "you", "me", "be", "a")
 
   // specify the input reader
   val input = new File("input.dat")
 	// val input = new JavaEscapedFile("tweets3.dat")
-  //val input = new Twitter(10000)
+  // val input = new Twitter(10000)
   // input.filterLang("nl")
-  //input.filterGeo(50.76, 3.34, 53.56, 7.20)
+  // input.filterGeo(50.76, 3.34, 53.56, 7.20)
+  // input.backupTo("tweetdata.dat")
 
   // what tokenizer to use on the input
   val tokenizerImpl = tokenizer.Twitter
