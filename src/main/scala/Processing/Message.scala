@@ -14,7 +14,7 @@ case class Sentence(str: String) extends Message
 case object Done extends Message
 
 /** Message indicating the number of sentences a generated has processed and counted */
-case class Completed(n: Int) extends Message
+case class Completed(n: Int, words: Int, assocs: Int) extends Message
 
 /** Indicates that a given string should be counted and to what generated a response should be sent */
 case class Count(str: String, respond: ActorRef) extends Message with ConsistentHashable {

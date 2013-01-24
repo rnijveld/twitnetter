@@ -17,8 +17,11 @@ class Generator(
   /** Number of received sentences */
   var received = 0
 
-  /** Number of sent words and associations */
-  var sent = 0
+  /** Number of sent words */
+  var sentWords = 0
+
+  /** Number of sent associations */
+  var sentAssocs = 0
 
   /** Number of counted words and associations */
   var completed = 0
@@ -38,7 +41,7 @@ class Generator(
     for (word <- WordCounter.words(tokens)) {
       if (!ignored(word)) {
         wordCounter ! Count(word, self)
-        sent += 1
+        sentWords += 1
       }
     }
 
@@ -46,7 +49,7 @@ class Generator(
     for (assoc <- WordCounter.skipgrams(tokens, 3, 2)) {
       if (assoc.size > 0 && assoc.forall(!ignored(_))) {
         assocCounter ! Count(assoc.reduce(_ + "|" + _), self)
-        sent += 1
+        sentAssocs += 1
       }
     }
   }
@@ -56,10 +59,11 @@ class Generator(
     completed += 1
 
     // all sent items are processed, notify the master that we are done
-    if (completed == sent) {
-      master ! Completed(received)
+    if (completed == (sentWords + sentAssocs)) {
+      master ! Completed(received, sentWords, sentAssocs)
       received = 0
-      sent = 0
+      sentWords = 0
+      sentAssocs = 0
       completed = 0
     }
   }

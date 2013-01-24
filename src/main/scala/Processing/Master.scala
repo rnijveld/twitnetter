@@ -35,6 +35,12 @@ class Master(
   /** Number of lines for which processing was completed */
   var completedLines = 0
 
+  /** Number of words counted */
+  var totalWords = 0
+
+  /** Number of assocations counted */
+  var totalAssocs = 0
+
   /** Boolean indicating if all lines have been processed */
   var completed = false
 
@@ -47,8 +53,10 @@ class Master(
       generators ! s
     }
     case Finished => completed = true
-    case Completed(n: Int) => {
+    case Completed(n: Int, words: Int, assocs: Int) => {
       completedLines += n
+      totalWords += words
+      totalAssocs += assocs
 
       if (completed && completedLines == sentLines) {
         wordCounter ! Result
@@ -77,15 +85,13 @@ class Master(
   }
 
   def process(w: Map[String, Int], a: Map[String, Int]) = {
-    val wTotal = w.foldLeft(0)(_+_._2)
-    Console.println(wTotal + " of words")
+    Console.println(totalWords + " of words")
     val wc = new HashMap[String, (Double, Int)]()
     for ((word, num) <- w) {
-      wc += word -> (num / (wTotal * 1.0), num)
+      wc += word -> (num / (totalWords * 1.0), num)
     }
 
-    val aTotal = a.foldLeft(0)(_+_._2)
-    Console.println(aTotal + " of assocs")
+    Console.println(totalAssocs + " of assocs")
     val ac = new HashMap[String, (Double, Int)]()
     for ((assoc, num) <- a) {
       val assocList = assoc.split("\\|")
@@ -95,7 +101,7 @@ class Master(
         wChance *= wc(word)._1
       }
 
-      val aChance: Double = num / (aTotal * 1.0)
+      val aChance: Double = num / (totalAssocs * 1.0)
       val pmi = log(aChance / wChance)
       val npmi = pmi / -log(aChance)
       ac += assoc -> (npmi, num)
