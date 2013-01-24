@@ -36,28 +36,41 @@ class Generator(
   def generate(sentence: String) {
     received += 1
     val tokens = tokenizer.tokenize(sentence)
+    var thisSent = 0
 
     // send words, as long as they aren't being ignored
     for (word <- WordCounter.words(tokens)) {
       if (!ignored(word)) {
-        wordCounter ! Count(word, self)
+        wordCounter ! Count(word)
         sentWords += 1
+        thisSent += 1
       }
     }
 
     // send skipgrams as long as they don't contain an ignored word
     for (assoc <- WordCounter.skipgrams(tokens, 3, 2)) {
       if (assoc.size > 0 && assoc.forall(!ignored(_))) {
-        assocCounter ! Count(assoc.reduce(_ + "|" + _), self)
+        assocCounter ! Count(assoc.reduce(_ + "|" + _))
         sentAssocs += 1
+        thisSent += 1
       }
+    }
+
+    // maybe this was an empty sentence
+    // we'll still need to notify the master if this generator doesn't get any new things to count
+    if (thisSent == 0) {
+      notifyCheck
     }
   }
 
   /** Receive a notification that counting was completed, notifies master when finished. */
   def complete() {
     completed += 1
+    notifyCheck
+  }
 
+  /** Check if we can sent results to the master */
+  def notifyCheck() {
     // all sent items are processed, notify the master that we are done
     if (completed == (sentWords + sentAssocs)) {
       master ! Completed(received, sentWords, sentAssocs)

@@ -2,11 +2,12 @@ package org.codersunit.tn.processing
 
 import akka.actor._
 import akka.routing.RoundRobinRouter
-import scala.math.log
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import org.codersunit.tn.input.Input
 import org.codersunit.tn.helper.tokenizer.Tokenizer
+import org.codersunit.tn.output.formatter.Formatter
+import org.codersunit.tn.output.limiter.Limiter
 
 /** Master that sends out all tasks for counting words */
 class Master(
@@ -14,14 +15,17 @@ class Master(
     nrOfWordCounters: Int,
     nrOfAssocCounters: Int,
     ignoredWords: Set[String],
-    tokenizer: Tokenizer)
+    tokenizer: Tokenizer,
+    output: String,
+    formatter: Formatter,
+    limiter: Limiter)
   extends Actor {
 
   /** Counter for words */
-  val wordCounter = context.actorOf(Props(new Counter("words", nrOfWordCounters)), name="wordCounter")
+  val wordCounter = context.actorOf(Props(new Counter("words", limiter, nrOfWordCounters)), name="wordCounter")
 
   /** Counter for associations */
-  val assocCounter = context.actorOf(Props(new Counter("assocs", nrOfAssocCounters)), name="assocCounter")
+  val assocCounter = context.actorOf(Props(new Counter("assocs", limiter, nrOfAssocCounters)), name="assocCounter")
 
   /** Generator that generates words and associations for the counters */
   val generators = context.actorOf(
@@ -44,15 +48,18 @@ class Master(
   /** Boolean indicating if all lines have been processed */
   var completed = false
 
-  var words: Option[Map[String, Int]] = None
-  var assocs: Option[Map[String, Int]] = None
-
   def receive = {
     case s: Sentence => {
       sentLines += 1
       generators ! s
     }
-    case Finished => completed = true
+    case Finished => {
+      Console.println("Received all input, finishing processing...")
+      completed = true
+      if (completedLines == sentLines) {
+        wordCounter ! Result
+      }
+    }
     case Completed(n: Int, words: Int, assocs: Int) => {
       completedLines += n
       totalWords += words
@@ -60,55 +67,23 @@ class Master(
 
       if (completed && completedLines == sentLines) {
         wordCounter ! Result
-        assocCounter ! Result
       }
     }
     case Counted(map: Map[String, Int], what: String) => {
-      if (what == "words") {
-        words = Some(map)
-      } else {
-        assocs = Some(map)
+      Console.println(totalWords + " of words")
+      Console.println(totalAssocs + " of assocs")
+      Console.println("Calculating normalized PMI and saving results to file...")
+
+      val wc = new HashMap[String, (Double, Int)]()
+
+      // calculate individual chances of words
+      for ((word, num) <- map) {
+        wc += word -> (num / (totalWords * 1.0), num)
       }
 
-      words match {
-        case Some(w: Map[String, Int]) => {
-          assocs match {
-            case Some(a: Map[String, Int]) => {
-              process(w, a)
-            }
-            case _ => {}
-          }
-        }
-        case _ => {}
-      }
+      // request the assoccounter to use the word probabilities to generate PMI results and write them to the output
+      val writer = context.actorOf(Props(new Writer(output, formatter, nrOfAssocCounters)), name="writer")
+      assocCounter ! Store(wc, totalAssocs, writer)
     }
-  }
-
-  def process(w: Map[String, Int], a: Map[String, Int]) = {
-    Console.println(totalWords + " of words")
-    val wc = new HashMap[String, (Double, Int)]()
-    for ((word, num) <- w) {
-      wc += word -> (num / (totalWords * 1.0), num)
-    }
-
-    Console.println(totalAssocs + " of assocs")
-    val ac = new HashMap[String, (Double, Int)]()
-    for ((assoc, num) <- a) {
-      val assocList = assoc.split("\\|")
-      var wChance: Double = 1.0
-
-      for (word <- assocList) {
-        wChance *= wc(word)._1
-      }
-
-      val aChance: Double = num / (totalAssocs * 1.0)
-      val pmi = log(aChance / wChance)
-      val npmi = pmi / -log(aChance)
-      ac += assoc -> (npmi, num)
-    }
-
-    Console.println("Done")
-    // Grapher.gw(wc, ac, "vvd")
-    context.system.shutdown()
   }
 }

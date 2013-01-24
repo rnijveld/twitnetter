@@ -5,9 +5,11 @@ import akka.routing.Broadcast
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import akka.routing.ConsistentHashingRouter
+import scala.math.log
+import org.codersunit.tn.output.limiter.Limiter
 
 /** Counts how often received strings occur */
-class Counter(what: String, nChildren: Int = 0) extends Actor {
+class Counter(what: String, limiter: Limiter, nChildren: Int = 0) extends Actor {
   /** Hashmap containing the counted strings */
   val counted = new HashMap[String, Int]()
 
@@ -26,7 +28,7 @@ class Counter(what: String, nChildren: Int = 0) extends Actor {
   // nChildren > 1 indicates that counting should be split up over multiple counters, creating those here
   if (nChildren > 1) {
     children = context.actorOf(
-      Props(new Counter(what)).withRouter(ConsistentHashingRouter(nChildren)),
+      Props(new Counter(what, limiter)).withRouter(ConsistentHashingRouter(nChildren)),
       name="counterChildren"
     )
   }
@@ -36,27 +38,28 @@ class Counter(what: String, nChildren: Int = 0) extends Actor {
     case c: Count => countWhere(c)
     case Result => generateResult()
     case Counted(map: Map[String, Int], what: String) => receiveResult(map)
+    case s: Store => store(s)
   }
 
   /** Determine who has to execute the counting request */
   def countWhere(c: Count) = {
     if (nChildren > 1) {
       // this counter has children, use the hashingrouter to spread counting over children evenly
-      children ! c
+      children.forward(c)
     } else {
       // no children to process the input, I'll do it myself
-      count(c.str, c.respond)
+      count(c.str)
     }
   }
 
   /** Count a string in this counter's local hashmap, notify the sender of the counting request */
-  def count(str: String, parent: ActorRef) {
+  def count(str: String) {
     if (!counted.contains(str)) {
       counted += str -> 0
     }
     counted(str) += 1
     processed += 1
-    parent ! Done
+    sender ! Done
   }
 
   /** This counter was asked to generate a result, if it has children it will have to request their hashmaps first */
@@ -82,5 +85,34 @@ class Counter(what: String, nChildren: Int = 0) extends Actor {
   /** Complete the request for getting the result */
   def complete() {
     resultRequester ! Counted(counted, what)
+  }
+
+  def store(s: Store) {
+    if (nChildren < 2) {
+      process(s.words, s.assocs, s.writer)
+    } else {
+      children ! Broadcast(s)
+    }
+  }
+
+  def process(wc: Map[String, (Double, Int)], totalAssocs: Int, writer: ActorRef) = {
+    val ac = new HashMap[String, (Double, Int)]()
+    for ((assoc, num) <- counted) {
+      val assocList = assoc.split("\\|").toList
+      var wChance: Double = 1.0
+
+      for (word <- assocList) {
+        wChance *= wc(word)._1
+      }
+
+      val aChance: Double = num / (totalAssocs * 1.0)
+      val pmi = log(aChance / wChance)
+      val npmi = pmi / -log(aChance)
+      if (limiter.allowed(assocList, npmi, num)) {
+        ac += assoc -> (npmi, num)
+      }
+
+    }
+    writer ! Output(ac)
   }
 }
